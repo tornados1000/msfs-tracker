@@ -1,0 +1,16 @@
+[
+  {
+    "date": "2025-09-29",
+    "departure": "LGAV",
+    "arrival": "EHAM",
+    "aircraft": "A320neo",
+    "duration": "3h15m"
+  },
+  {
+    "date": "2025-09-28",
+    "departure": "LOWI",
+    "arrival": "LSZH",
+    "aircraft": "Cessna 172",
+    "duration": "1h05m"
+  }
+]

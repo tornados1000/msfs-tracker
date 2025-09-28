@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>MSFS Flight Log</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+</head>
+<body>
+  <h1>My MSFS Flights</h1>
+
+  <!-- Stats -->
+  <div id="stats"></div>
+
+  <!-- Flight Table -->
+  <table id="flightsTable">
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Departure</th>
+        <th>Arrival</th>
+        <th>Aircraft</th>
+        <th>Duration</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <!-- Map -->
+  <div id="map"></div>
+
+  <script>
+    // Duration parser: handles "3h15m", "2h", "45m"
+    function parseDuration(dur) {
+      let hours = 0, minutes = 0;
+      const hMatch = dur.match(/(\d+)h/);
+      const mMatch = dur.match(/(\d+)m/);
+      if (hMatch) hours = parseInt(hMatch[1]);
+      if (mMatch) minutes = parseInt(mMatch[1]);
+      return hours * 60 + minutes;
+    }
+
+    async function loadFlights() {
+      const response = await fetch('flights.json');
+      const flights = await response.json();
+
+      // Fill table
+      const tableBody = document.querySelector("#flightsTable tbody");
+      flights.forEach(f => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${f.date}</td>
+          <td>${f.departure}</td>
+          <td>${f.arrival}</td>
+          <td>${f.aircraft}</td>
+          <td>${f.duration}</td>
+        `;
+        tableBody.appendChild(row);
+      });
+
+      // Stats
+      const totalFlights = flights.length;
+      const totalMinutes = flights.reduce((sum, f) => sum + parseDuration(f.duration), 0);
+      const hours = Math.floor(totalMinutes / 60);
+      const mins = totalMinutes % 60;
+
+      document.getElementById("stats").innerHTML = `
+        <p><strong>Total Flights:</strong> ${totalFlights}</p>
+        <p><strong>Total Flight Time:</strong> ${hours}h ${mins}m</p>
+      `;
+
+      // Map
+      const map = L.map('map').setView([48, 10], 4); // Default Europe view
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.pn
