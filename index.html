@@ -2,75 +2,101 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>MSFS Flight Log</title>
-  <link rel="stylesheet" href="style.css">
-  <!-- Leaflet -->
+  <title>MSFS Flight Tracker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <style>
+    body { margin: 0; font-family: Arial, sans-serif; }
+    #map { height: 70vh; width: 100%; }
+    #flights { padding: 1em; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border: 1px solid #ccc; padding: 6px; text-align: left; }
+    th { background: #eee; }
+  </style>
 </head>
 <body>
-  <h1>My MSFS Flights</h1>
-
-  <!-- Stats -->
-  <div id="stats"></div>
-
-  <!-- Flight Table -->
-  <table id="flightsTable">
-    <thead>
-      <tr>
-        <th>Date</th>
-        <th>Departure</th>
-        <th>Arrival</th>
-        <th>Aircraft</th>
-        <th>Duration</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-
-  <!-- Map -->
+  <h2 style="text-align:center;">MSFS Flight Tracker</h2>
   <div id="map"></div>
+  <div id="flights">
+    <h3>Flight Log</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th><th>From</th><th>To</th><th>Aircraft</th><th>Duration</th>
+        </tr>
+      </thead>
+      <tbody id="flight-rows"></tbody>
+    </table>
+  </div>
 
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script>
-    // Duration parser: handles "3h15m", "2h", "45m"
-    function parseDuration(dur) {
-      let hours = 0, minutes = 0;
-      const hMatch = dur.match(/(\d+)h/);
-      const mMatch = dur.match(/(\d+)m/);
-      if (hMatch) hours = parseInt(hMatch[1]);
-      if (mMatch) minutes = parseInt(mMatch[1]);
-      return hours * 60 + minutes;
+    async function loadFlights() {
+      try {
+        const response = await fetch('./flights.json'); // must be in repo root
+        if (!response.ok) throw new Error("flights.json not found");
+        return await response.json();
+      } catch (e) {
+        console.error("⚠️ Could not load flights.json:", e);
+        // fallback example
+        return [
+          { date:"2025-09-29", departure:"LGAV", arrival:"EHAM", aircraft:"A320", duration:"3h15m" },
+          { date:"2025-09-25", departure:"EHAM", arrival:"EDDF", aircraft:"B738", duration:"1h10m" }
+        ];
+      }
     }
 
-    async function loadFlights() {
-      const response = await fetch('msfs-tracker/flights.json');
-      const flights = await response.json();
+    async function init() {
+      const flights = await loadFlights();
 
-      // Fill table
-      const tableBody = document.querySelector("#flightsTable tbody");
-      flights.forEach(f => {
-        const row = document.createElement("tr");
-        row.innerHTML = `
-          <td>${f.date}</td>
-          <td>${f.departure}</td>
-          <td>${f.arrival}</td>
-          <td>${f.aircraft}</td>
-          <td>${f.duration}</td>
-        `;
-        tableBody.appendChild(row);
-      });
+      // Initialize map
+      const map = L.map('map').setView([40, 10], 4);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 18,
+        attribution: '© OpenStreetMap contributors'
+      }).addTo(map);
 
-      // Stats
-      const totalFlights = flights.length;
-      const totalMinutes = flights.reduce((sum, f) => sum + parseDuration(f.duration), 0);
-      const hours = Math.floor(totalMinutes / 60);
-      const mins = totalMinutes % 60;
+      setTimeout(() => map.invalidateSize(), 500);
 
-      document.getElementById("stats").innerHTML = `
-        <p><strong>Total Flights:</strong> ${totalFlights}</p>
-        <p><strong>Total Flight Time:</strong> ${hours}h ${mins}m</p>
-      `;
+      // Add markers + lines
+      const flightRows = document.getElementById("flight-rows");
+      let lastLatLng = null;
 
-      // Map
-      const map = L.map('map').setView([48, 10], 4); // Default Europe view
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.pn
+      for (const f of flights) {
+        // Dummy geocode for demo (replace with real coords or lookup table)
+        const airports = {
+          "LGAV": [37.9364, 23.9445],
+          "EHAM": [52.3086, 4.7639],
+          "EDDF": [50.0379, 8.5622]
+        };
+        const dep = airports[f.departure];
+        const arr = airports[f.arrival];
+
+        if (dep) L.marker(dep).addTo(map).bindPopup(f.departure);
+        if (arr) L.marker(arr).addTo(map).bindPopup(f.arrival);
+        if (dep && arr) {
+          L.polyline([dep, arr], { color: "red" }).addTo(map);
+          lastLatLng = arr;
+        }
+
+        // Add to table
+        flightRows.insertAdjacentHTML("beforeend", `
+          <tr>
+            <td>${f.date}</td>
+            <td>${f.departure}</td>
+            <td>${f.arrival}</td>
+            <td>${f.aircraft}</td>
+            <td>${f.duration}</td>
+          </tr>
+        `);
+      }
+
+      if (lastLatLng) map.setView(lastLatLng, 5);
+    }
+
+    init();
+  </script>
+</body>
+</html>
