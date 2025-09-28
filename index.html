@@ -43,7 +43,7 @@
     }
 
     async function loadFlights() {
-      const response = await fetch('./flights.json');
+      const response = await fetch('msfs-tracker/flights.json');
       const flights = await response.json();
 
       // Fill table
