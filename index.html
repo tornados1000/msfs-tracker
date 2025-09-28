@@ -4,99 +4,52 @@
   <meta charset="UTF-8">
   <title>MSFS Flight Tracker</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <!-- Leaflet CSS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+  
+  <!-- ✅ Leaflet CSS -->
+  <link 
+    rel="stylesheet" 
+    href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" 
+    integrity="sha512-p/1JQylV+gC0ZcB1YyFQ9jSzn8pN5YQEiHcP1ElH2eywjp+1DKx6ZczO3jybSXhScMZlZHEpwn9K2RChnLk1BA==" 
+    crossorigin="anonymous" 
+    referrerpolicy="no-referrer"
+  />
+
   <style>
-    body { margin: 0; font-family: Arial, sans-serif; }
-    #map { height: 70vh; width: 100%; }
-    #flights { padding: 1em; }
-    table { width: 100%; border-collapse: collapse; }
-    th, td { border: 1px solid #ccc; padding: 6px; text-align: left; }
-    th { background: #eee; }
+    body { margin: 0; }
+    #map { height: 100vh; width: 100%; }
   </style>
 </head>
 <body>
-  <h2 style="text-align:center;">MSFS Flight Tracker</h2>
   <div id="map"></div>
-  <div id="flights">
-    <h3>Flight Log</h3>
-    <table>
-      <thead>
-        <tr>
-          <th>Date</th><th>From</th><th>To</th><th>Aircraft</th><th>Duration</th>
-        </tr>
-      </thead>
-      <tbody id="flight-rows"></tbody>
-    </table>
-  </div>
 
-  <!-- Leaflet JS -->
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <!-- ✅ Leaflet JS -->
+  <script 
+    src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js" 
+    integrity="sha512-vAdOomH5tKwTXttBYmcgx2VwZrMjnZWGOk8Eam9FnOxAaRVF7E2AcwTh5dSS4RkH0C1V8V7xzwX1Y0az4q1i9g==" 
+    crossorigin="anonymous" 
+    referrerpolicy="no-referrer">
+  </script>
+
   <script>
-    async function loadFlights() {
-      try {
-        const response = await fetch('./flights.json'); // must be in repo root
-        if (!response.ok) throw new Error("flights.json not found");
-        return await response.json();
-      } catch (e) {
-        console.error("⚠️ Could not load flights.json:", e);
-        // fallback example
-        return [
-          { date:"2025-09-29", departure:"LGAV", arrival:"EHAM", aircraft:"A320", duration:"3h15m" },
-          { date:"2025-09-25", departure:"EHAM", arrival:"EDDF", aircraft:"B738", duration:"1h10m" }
-        ];
-      }
-    }
+    // Initialize the map centered on Europe
+    const map = L.map('map').setView([48.5, 9], 5);
 
-    async function init() {
-      const flights = await loadFlights();
+    // Add OpenStreetMap tiles
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 18,
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
 
-      // Initialize map
-      const map = L.map('map').setView([40, 10], 4);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 18,
-        attribution: '© OpenStreetMap contributors'
-      }).addTo(map);
+    // Example airports: Athens LGAV and Amsterdam EHAM
+    const LGAV = [37.9364, 23.9445];
+    const EHAM = [52.3086, 4.7639];
 
-      setTimeout(() => map.invalidateSize(), 500);
+    // Add pins
+    L.marker(LGAV).addTo(map).bindPopup("LGAV - Athens");
+    L.marker(EHAM).addTo(map).bindPopup("EHAM - Amsterdam");
 
-      // Add markers + lines
-      const flightRows = document.getElementById("flight-rows");
-      let lastLatLng = null;
-
-      for (const f of flights) {
-        // Dummy geocode for demo (replace with real coords or lookup table)
-        const airports = {
-          "LGAV": [37.9364, 23.9445],
-          "EHAM": [52.3086, 4.7639],
-          "EDDF": [50.0379, 8.5622]
-        };
-        const dep = airports[f.departure];
-        const arr = airports[f.arrival];
-
-        if (dep) L.marker(dep).addTo(map).bindPopup(f.departure);
-        if (arr) L.marker(arr).addTo(map).bindPopup(f.arrival);
-        if (dep && arr) {
-          L.polyline([dep, arr], { color: "red" }).addTo(map);
-          lastLatLng = arr;
-        }
-
-        // Add to table
-        flightRows.insertAdjacentHTML("beforeend", `
-          <tr>
-            <td>${f.date}</td>
-            <td>${f.departure}</td>
-            <td>${f.arrival}</td>
-            <td>${f.aircraft}</td>
-            <td>${f.duration}</td>
-          </tr>
-        `);
-      }
-
-      if (lastLatLng) map.setView(lastLatLng, 5);
-    }
-
-    init();
+    // Draw route line
+    L.polyline([LGAV, EHAM], { color: 'red' }).addTo(map);
   </script>
 </body>
 </html>
